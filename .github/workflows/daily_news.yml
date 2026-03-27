@@ -1,0 +1,30 @@
+name: Daily Tech News Bot
+
+on:
+  schedule:
+    # Runs every day at 8:00 AM Central Time (UTC-5 standard / UTC-6 daylight)
+    # 14:00 UTC = 8:00 AM CST  |  13:00 UTC = 8:00 AM CDT
+    # Adjust the hour below to change your delivery time (UTC format)
+    - cron: "0 14 * * *"
+
+  # Lets you click "Run workflow" manually in GitHub to test it
+  workflow_dispatch:
+
+jobs:
+  send-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the bot
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python telegram_news_bot.py
