@@ -1,0 +1,20 @@
+name: Daily Spiritual Message
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # 7 AM Central Time (UTC-6)
+  workflow_dispatch:       # lets you test it manually
+
+jobs:
+  send-spiritual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Send spiritual message
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python spiritual_bot.py
