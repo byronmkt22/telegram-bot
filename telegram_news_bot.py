@@ -167,5 +167,8 @@ def send_telegram_message(text: str) -> bool:
 if __name__ == "__main__":
     print(f"🤖 Asking Claude to search today's news...")
     message = generate_news_message()
+    print(f"📝 Message length: {len(message)} characters")
+    print(f"📝 First 500 chars: {message[:500]}")
+    print(f"📝 Last 500 chars: {message[-500:]}")
     print("📤 Sending to Telegram...")
     send_telegram_message(message)
