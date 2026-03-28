@@ -1,133 +1,129 @@
 """
-Telegram Daily Tech News Bot
-Fetches RSS feeds across tech topics and sends a formatted digest to Telegram.
+Telegram Daily Tech News Bot - Claude AI Powered
+Uses Claude with web search to fetch and summarize today's real tech news.
 """
 
 import os
-import xml.etree.ElementTree as ET
+import json
 from datetime import datetime, timezone
 from urllib.request import urlopen, Request
-from urllib.error import URLError
-import json
 
-# ─── CONFIGURATION ──────────────────────────────────────────────────────────────
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "YOUR_BOT_TOKEN_HERE")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "YOUR_CHAT_ID_HERE")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
-# Free RSS feeds covering General Tech/AI, Cybersecurity, Programming, Gadgets
-RSS_FEEDS = {
-    "🤖 AI & General Tech": [
-        "https://feeds.feedburner.com/TechCrunch",
-        "https://www.theverge.com/rss/index.xml",
-    ],
-    "🔐 Cybersecurity": [
-        "https://feeds.feedburner.com/TheHackersNews",
-        "https://www.darkreading.com/rss.xml",
-    ],
-    "💻 Programming & Dev": [
-        "https://dev.to/feed",
-        "https://www.infoq.com/feed/",
-    ],
-    "📱 Gadgets & Hardware": [
-        "https://www.engadget.com/rss.xml",
-        "https://feeds.arstechnica.com/arstechnica/gadgets",
-    ],
-}
+# ─── CLAUDE AI NEWS GENERATOR ────────────────────────────────────────────────
 
-MAX_ITEMS_PER_CATEGORY = 2   # How many headlines per category
-MAX_TITLE_LENGTH = 80        # Truncate long titles
-
-
-# ─── RSS PARSING ────────────────────────────────────────────────────────────────
-def fetch_rss(url: str) -> list[dict]:
-    """Fetch and parse an RSS feed, return list of {title, link} dicts."""
-    try:
-        req = Request(url, headers={"User-Agent": "Mozilla/5.0 TechNewsBot/1.0"})
-        with urlopen(req, timeout=10) as resp:
-            raw = resp.read()
-        root = ET.fromstring(raw)
-        ns = {"atom": "http://www.w3.org/2005/Atom"}
-
-        items = []
-        # Standard RSS <item> format
-        for item in root.iter("item"):
-            title_el = item.find("title")
-            link_el = item.find("link")
-            if title_el is not None and link_el is not None:
-                title = (title_el.text or "").strip()
-                link = (link_el.text or "").strip()
-                if title and link:
-                    items.append({"title": title, "link": link})
-
-        # Atom <entry> format (fallback)
-        if not items:
-            for entry in root.findall(".//atom:entry", ns):
-                title_el = entry.find("atom:title", ns)
-                link_el = entry.find("atom:link", ns)
-                if title_el is not None and link_el is not None:
-                    title = (title_el.text or "").strip()
-                    link = link_el.get("href", "").strip()
-                    if title and link:
-                        items.append({"title": title, "link": link})
-
-        return items[:MAX_ITEMS_PER_CATEGORY]
-
-    except (URLError, ET.ParseError, Exception) as e:
-        print(f"  ⚠️  Failed to fetch {url}: {e}")
-        return []
-
-
-# ─── MESSAGE BUILDER ────────────────────────────────────────────────────────────
-def truncate(text: str, max_len: int) -> str:
-    return text if len(text) <= max_len else text[: max_len - 1] + "…"
-
-
-def build_message() -> str:
+def generate_news_message() -> str:
     today = datetime.now(timezone.utc).strftime("%A, %B %d %Y")
-    lines = [
-        f"📰 *Daily Tech Digest*",
-        f"_{today}_",
-        "",
-    ]
 
-    for category, urls in RSS_FEEDS.items():
-        items = []
-        for url in urls:
-            fetched = fetch_rss(url)
-            items.extend(fetched)
-            if len(items) >= MAX_ITEMS_PER_CATEGORY:
-                break
-        items = items[:MAX_ITEMS_PER_CATEGORY]
+    prompt = f"""Today is {today}. Use your web search tool to find today's most important and interesting news stories in these 5 categories:
 
-        if not items:
-            continue
+1. 🤖 AI & Tech
+2. 💻 Programming & Dev
+3. 📱 Gadgets & Hardware
+4. 🔬 Science & Health
+5. ⚡ General Technology
 
-        lines.append(f"*{category}*")
-        for item in items:
-            title = truncate(item["title"], MAX_TITLE_LENGTH)
-            link = item["link"]
-            # Telegram MarkdownV2 requires escaping some chars in plain text
-            lines.append(f"• [{escape_md(title)}]({link})")
-        lines.append("")
+For each category, find 2 real stories from today or the last 24-48 hours. For each story provide:
+- The headline
+- A 1-2 sentence summary of why it matters
+- The source name and URL if available
 
-    lines.append("_Stay curious\\! 🚀_")
-    return "\n".join(lines)
+Format the response exactly like this for Telegram MarkdownV2:
 
+📰 *Daily Tech Digest*
+_{today}_
 
-def escape_md(text: str) -> str:
-    """Escape special characters for Telegram MarkdownV2."""
-    special = r"\_*[]()~`>#+-=|{}.!"
-    return "".join(f"\\{c}" if c in special else c for c in text)
+🤖 *AI & Tech*
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+💻 *Programming & Dev*
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+📱 *Gadgets & Hardware*
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+🔬 *Science & Health*
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+⚡ *General Technology*
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+- *[Headline]*
+[1-2 sentence summary] — [Source Name]([URL])
+
+_Stay curious\\! 🚀_
+
+Important rules:
+- Use REAL stories from today or last 48 hours, found via web search
+- Escape these characters with a backslash: _ * [ ] ( ) ~ ` > # + - = | {{ }} . !
+- Keep summaries concise and clear
+- Only output the formatted message, nothing else"""
+
+    payload = json.dumps({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 2000,
+        "tools": [
+            {
+                "type": "web_search_20250305",
+                "name": "web_search"
+            }
+        ],
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }).encode("utf-8")
+
+    req = Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+        }
+    )
+
+    try:
+        with urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read())
+            # Extract the final text response from content blocks
+            for block in result["content"]:
+                if block["type"] == "text":
+                    return block["text"]
+        return "❌ Could not generate news digest today."
+    except Exception as e:
+        print(f"❌ Claude API error: {e}")
+        return "❌ Could not generate news digest today. Please try again later."
 
 
 # ─── TELEGRAM SENDER ────────────────────────────────────────────────────────────
+
 def send_telegram_message(text: str) -> bool:
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = json.dumps({
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text,
         "parse_mode": "MarkdownV2",
-        "disable_web_page_preview": True,
+        "disable_web_page_preview": False,
     }).encode("utf-8")
 
     req = Request(url, data=payload, headers={"Content-Type": "application/json"})
@@ -135,7 +131,7 @@ def send_telegram_message(text: str) -> bool:
         with urlopen(req, timeout=15) as resp:
             result = json.loads(resp.read())
             if result.get("ok"):
-                print("✅ Message sent successfully!")
+                print("✅ News digest sent!")
                 return True
             else:
                 print(f"❌ Telegram API error: {result}")
@@ -146,8 +142,9 @@ def send_telegram_message(text: str) -> bool:
 
 
 # ─── MAIN ───────────────────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
-    print(f"🤖 Building tech news digest...")
-    message = build_message()
+    print(f"🤖 Asking Claude to search today's news...")
+    message = generate_news_message()
     print("📤 Sending to Telegram...")
     send_telegram_message(message)
