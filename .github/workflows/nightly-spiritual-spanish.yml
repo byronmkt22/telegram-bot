@@ -15,7 +15,7 @@ jobs:
       - name: Generate and Send Nightly Spiritual Sequence (3 Messages)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
 
@@ -42,18 +42,16 @@ jobs:
             -d "{
               \"model\": \"claude-sonnet-4-20250514\",
               \"max_tokens\": 1024,
-              \"messages\": [
-                {
-                  \"role\": \"user\",
-                  \"content\": \"Eres un mensajero espiritual nocturno. Genera un mensaje espiritual en ESPAÑOL inspirado en el estilo y la filosofia de ${AUTHOR}. El mensaje debe ser edificante y esperanzador, apropiado para leer antes de dormir, entre 3 y 5 oraciones, dirigido al lector usando tu o ti, sin mencionar al autor, que invite a la reflexion y la paz interior. Devuelve UNICAMENTE el mensaje, sin titulo, sin comillas, sin explicacion adicional.\"
-                }
-              ]
+              \"messages\": [{
+                \"role\": \"user\",
+                \"content\": \"Eres un mensajero espiritual nocturno. Genera un mensaje espiritual en ESPAÑOL inspirado en el estilo y la filosofia de ${AUTHOR}. El mensaje debe ser edificante y esperanzador, apropiado para leer antes de dormir, entre 3 y 5 oraciones, dirigido al lector usando tu o ti, sin mencionar al autor, que invite a la reflexion y la paz interior. Devuelve UNICAMENTE el mensaje, sin titulo, sin comillas, sin explicacion adicional.\"
+              }]
             }")
 
           AUTHOR_MESSAGE=$(echo "$RESPONSE_AUTHOR" | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          print(data['content'][0]['text'])
+import sys, json
+data = json.load(sys.stdin)
+print(data['content'][0]['text'])
           ")
 
           # -- 3. Fetch real movie quote translated to Spanish ---------------
@@ -64,18 +62,16 @@ jobs:
             -d "{
               \"model\": \"claude-sonnet-4-20250514\",
               \"max_tokens\": 1024,
-              \"messages\": [
-                {
-                  \"role\": \"user\",
-                  \"content\": \"Eres un experto en cine espiritual. De la pelicula '${MOVIE}', proporciona UNA frase o cita REAL y memorable. Luego tradúcela al español de forma poetica y natural. Responde UNICAMENTE en este formato exacto sin nada mas:\nORIGINAL: [frase original en ingles]\nESPANOL: [traduccion al espanol]\nPERSONAJE: [nombre del personaje o Narrador si aplica]\"
-                }
-              ]
+              \"messages\": [{
+                \"role\": \"user\",
+                \"content\": \"Eres un experto en cine espiritual. De la pelicula '${MOVIE}', proporciona UNA frase o cita REAL y memorable. Luego traducela al espanol de forma poetica y natural. Responde UNICAMENTE en este formato exacto sin nada mas:\nORIGINAL: [frase original en ingles]\nESPANOL: [traduccion al espanol]\nPERSONAJE: [nombre del personaje o Narrador si aplica]\"
+              }]
             }")
 
           MOVIE_RESPONSE=$(echo "$RESPONSE_MOVIE" | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          print(data['content'][0]['text'])
+import sys, json
+data = json.load(sys.stdin)
+print(data['content'][0]['text'])
           ")
 
           QUOTE_ES=$(echo "$MOVIE_RESPONSE"  | grep '^ESPANOL:'   | sed 's/^ESPANOL: //')
@@ -90,18 +86,16 @@ jobs:
             -d "{
               \"model\": \"claude-sonnet-4-20250514\",
               \"max_tokens\": 1024,
-              \"messages\": [
-                {
-                  \"role\": \"user\",
-                  \"content\": \"Eres un guia espiritual experto en la trilogia de Enrique Barrios. Del libro '${AMI_PART}' de Enrique Barrios, proporciona UNA cita o frase real e inspiradora del libro, preferiblemente dicha por el personaje Ami. Luego agrega una brevísima reflexion personal de maximo 2 oraciones que conecte esa frase con la vida cotidiana del lector de forma esperanzadora. Responde UNICAMENTE en este formato exacto sin nada mas:\nCITA: [la frase o cita del libro]\nPERSONAJE: [nombre del personaje que la dice o Narrador si aplica]\nREFLEXION: [tu breve reflexion de maximo 2 oraciones]\"
-                }
-              ]
+              \"messages\": [{
+                \"role\": \"user\",
+                \"content\": \"Eres un guia espiritual experto en la trilogia de Enrique Barrios. Del libro '${AMI_PART}' de Enrique Barrios, proporciona UNA cita o frase real e inspiradora del libro, preferiblemente dicha por el personaje Ami. Luego agrega una brevisima reflexion personal de maximo 2 oraciones que conecte esa frase con la vida cotidiana del lector de forma esperanzadora. Responde UNICAMENTE en este formato exacto sin nada mas:\nCITA: [la frase o cita del libro]\nPERSONAJE: [nombre del personaje que la dice o Narrador si aplica]\nREFLEXION: [tu breve reflexion de maximo 2 oraciones]\"
+              }]
             }")
 
           AMI_RESPONSE=$(echo "$RESPONSE_AMI" | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          print(data['content'][0]['text'])
+import sys, json
+data = json.load(sys.stdin)
+print(data['content'][0]['text'])
           ")
 
           AMI_QUOTE=$(echo "$AMI_RESPONSE"      | grep '^CITA:'      | sed 's/^CITA: //')
@@ -109,79 +103,67 @@ jobs:
           AMI_REFLECTION=$(echo "$AMI_RESPONSE" | grep '^REFLEXION:' | sed 's/^REFLEXION: //')
 
           echo "All three messages generated successfully."
+          echo "AUTHOR_MESSAGE: $AUTHOR_MESSAGE"
+          echo "QUOTE_ES: $QUOTE_ES"
+          echo "AMI_QUOTE: $AMI_QUOTE"
+
+          # -- Helper: send a Telegram message -------------------------------
+          send_telegram() {
+            local TEXT="$1"
+            local PAYLOAD
+            PAYLOAD=$(python3 -c "
+import sys, json
+text = sys.stdin.read()
+print(json.dumps({'chat_id': '$(echo $TELEGRAM_CHAT_ID)', 'text': text, 'parse_mode': 'Markdown'}))
+" <<< "$TEXT")
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD"
+          }
 
           # -- 5. Send MESSAGE 1 - Author Inspiration ------------------------
-          MSG1=$(python3 -c "
-          import os
-          author = os.environ.get('AUTHOR', '')
-          date = os.environ.get('CURRENT_DATE', '')
-          msg = os.environ.get('AUTHOR_MESSAGE', '')
-          text = f'🌙 *Mensaje Espiritual de Buenas Noches*\n{date}\n\n{msg}\n\n✨ _Inspirado en: {author}_'
-          print(text)
-          " \
-          AUTHOR="$AUTHOR" \
-          CURRENT_DATE="$CURRENT_DATE" \
-          AUTHOR_MESSAGE="$AUTHOR_MESSAGE")
+          MSG1=$(cat <<EOF
+🌙 *Mensaje Espiritual de Buenas Noches*
+$CURRENT_DATE
 
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"${TELEGRAM_CHAT_ID}\",
-              \"text\": $(echo "$MSG1" | python3 -c "import sys, json; print(json.dumps(sys.stdin.read()))"),
-              \"parse_mode\": \"Markdown\"
-            }"
+$AUTHOR_MESSAGE
 
-          echo "Message 1 sent (author inspiration)."
+✨ _Inspirado en: $AUTHOR_
+EOF
+)
+          send_telegram "$MSG1"
+          echo "Message 1 sent."
           sleep 3
 
           # -- 6. Send MESSAGE 2 - Movie Quote -------------------------------
-          MSG2=$(python3 -c "
-          import os
-          quote_es  = os.environ.get('QUOTE_ES', '')
-          quote_en  = os.environ.get('QUOTE_EN', '')
-          character = os.environ.get('CHARACTER', '')
-          movie     = os.environ.get('MOVIE', '')
-          text = f'🎬 *Frase Espiritual del Cine*\n\n_{chr(34)}{quote_es}{chr(34)}_\n\n— {character}\n🎥 *{movie}*\n\n🇺🇸 _{chr(34)}{quote_en}{chr(34)}_'
-          print(text)
-          " \
-          QUOTE_ES="$QUOTE_ES" \
-          QUOTE_EN="$QUOTE_EN" \
-          CHARACTER="$CHARACTER" \
-          MOVIE="$MOVIE")
+          MSG2=$(cat <<EOF
+🎬 *Frase Espiritual del Cine*
 
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"${TELEGRAM_CHAT_ID}\",
-              \"text\": $(echo "$MSG2" | python3 -c "import sys, json; print(json.dumps(sys.stdin.read()))"),
-              \"parse_mode\": \"Markdown\"
-            }"
+_"$QUOTE_ES"_
 
-          echo "Message 2 sent (movie quote)."
+— $CHARACTER
+🎥 *$MOVIE*
+
+🇺🇸 _"$QUOTE_EN"_
+EOF
+)
+          send_telegram "$MSG2"
+          echo "Message 2 sent."
           sleep 3
 
           # -- 7. Send MESSAGE 3 - Ami Book Quote + Reflection ---------------
-          MSG3=$(python3 -c "
-          import os
-          quote      = os.environ.get('AMI_QUOTE', '')
-          character  = os.environ.get('AMI_CHARACTER', '')
-          ami_part   = os.environ.get('AMI_PART', '')
-          reflection = os.environ.get('AMI_REFLECTION', '')
-          text = f'📖 *Sabiduría de las Estrellas*\n\n_{chr(34)}{quote}{chr(34)}_\n\n— {character}\n🌟 *{ami_part}*\n_Enrique Barrios_\n\n💫 *Reflexión:* {reflection}'
-          print(text)
-          " \
-          AMI_QUOTE="$AMI_QUOTE" \
-          AMI_CHARACTER="$AMI_CHARACTER" \
-          AMI_PART="$AMI_PART" \
-          AMI_REFLECTION="$AMI_REFLECTION")
+          MSG3=$(cat <<EOF
+📖 *Sabiduría de las Estrellas*
 
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"${TELEGRAM_CHAT_ID}\",
-              \"text\": $(echo "$MSG3" | python3 -c "import sys, json; print(json.dumps(sys.stdin.read()))"),
-              \"parse_mode\": \"Markdown\"
-            }"
+_"$AMI_QUOTE"_
 
-          echo "Message 3 sent (Ami book quote and reflection)."
+— $AMI_CHARACTER
+🌟 *$AMI_PART*
+_Enrique Barrios_
+
+💫 *Reflexión:* $AMI_REFLECTION
+EOF
+)
+          send_telegram "$MSG3"
+          echo "Message 3 sent."
           echo "Nightly spiritual sequence completed!"
