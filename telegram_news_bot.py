@@ -121,27 +121,50 @@ Important rules:
 # ─── TELEGRAM SENDER ────────────────────────────────────────────────────────────
 
 def send_telegram_message(text: str) -> bool:
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = json.dumps({
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True,
-    }).encode("utf-8")
-
-    req = Request(url, data=payload, headers={"Content-Type": "application/json"})
-    try:
-        with urlopen(req, timeout=15) as resp:
-            result = json.loads(resp.read())
-            if result.get("ok"):
-                print("✅ News digest sent!")
-                return True
+    # Telegram max message length is 4096 characters
+    # Split into chunks if needed
+    max_length = 4000
+    chunks = []
+    
+    if len(text) <= max_length:
+        chunks = [text]
+    else:
+        # Split by double newline to avoid breaking mid-section
+        paragraphs = text.split("\n\n")
+        current_chunk = ""
+        for paragraph in paragraphs:
+            if len(current_chunk) + len(paragraph) + 2 <= max_length:
+                current_chunk += paragraph + "\n\n"
             else:
-                print(f"❌ Telegram API error: {result}")
-                return False
-    except Exception as e:
-        print(f"❌ Failed to send message: {e}")
-        return False
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                current_chunk = paragraph + "\n\n"
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    
+    for chunk in chunks:
+        payload = json.dumps({
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": chunk,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        }).encode("utf-8")
+
+        req = Request(url, data=payload, headers={"Content-Type": "application/json"})
+        try:
+            with urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read())
+                if not result.get("ok"):
+                    print(f"❌ Telegram API error: {result}")
+                    return False
+        except Exception as e:
+            print(f"❌ Failed to send message: {e}")
+            return False
+
+    print(f"✅ News digest sent in {len(chunks)} message(s)!")
+    return True
 
 
 # ─── MAIN ───────────────────────────────────────────────────────────────────────
