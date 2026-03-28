@@ -25,59 +25,55 @@ def generate_news_message() -> str:
 4. 🔬 Science & Health
 5. ⚡ General Technology
 
-For each category, find 2 real stories from today or the last 24-48 hours. For each story provide:
-- The headline
-- A 1-2 sentence summary of why it matters
-- The source name and URL if available
+For each category, find 2 real stories from today or the last 24-48 hours.
 
-Format the response using HTML tags for Telegram, exactly like this:
+Format the response exactly like this as plain text:
 
-📰 <b>Daily Tech Digest</b>
-<i>{today}</i>
+📰 Daily Tech Digest
+{today}
 
-🤖 <b>AI & Tech</b>
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+🤖 AI & Tech
+- Headline here
+Summary sentence. — Source Name: URL
 
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+- Headline here
+Summary sentence. — Source Name: URL
 
-💻 <b>Programming & Dev</b>
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+💻 Programming & Dev
+- Headline here
+Summary sentence. — Source Name: URL
 
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+- Headline here
+Summary sentence. — Source Name: URL
 
-📱 <b>Gadgets & Hardware</b>
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+📱 Gadgets & Hardware
+- Headline here
+Summary sentence. — Source Name: URL
 
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+- Headline here
+Summary sentence. — Source Name: URL
 
-🔬 <b>Science & Health</b>
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+🔬 Science & Health
+- Headline here
+Summary sentence. — Source Name: URL
 
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+- Headline here
+Summary sentence. — Source Name: URL
 
-⚡ <b>General Technology</b>
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+⚡ General Technology
+- Headline here
+Summary sentence. — Source Name: URL
 
-- <b>Headline here</b>
-Summary sentence here. — <a href="URL">Source Name</a>
+- Headline here
+Summary sentence. — Source Name: URL
 
-<i>Stay curious! 🚀</i>
+Stay curious! 🚀
 
 Important rules:
-- Use REAL stories from today or last 48 hours, found via web search
-- Use only these HTML tags: <b>, <i>, <a href="">
-- Do NOT use any markdown symbols like * _ [ ] or backticks
+- Use REAL stories from today or last 48 hours found via web search
+- Plain text only, no HTML tags, no markdown symbols
 - Only output the formatted message, nothing else"""
-
+    
     payload = json.dumps({
         "model": "claude-haiku-4-5-20251001",
         "max_tokens": 2000,
@@ -148,7 +144,6 @@ def send_telegram_message(text: str) -> bool:
         payload = json.dumps({
             "chat_id": TELEGRAM_CHAT_ID,
             "text": chunk,
-            "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }).encode("utf-8")
 
