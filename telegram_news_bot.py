@@ -25,7 +25,7 @@ def generate_news_message() -> str:
 4. 🔬 Science & Health
 5. ⚡ General Technology
 
-For each category, find 2 real stories from today or the last 24-48 hours.
+Find 2 real stories from the last 3 days, prioritizing the most recent ones
 
 Format the response exactly like this as plain text:
 
@@ -70,7 +70,7 @@ Summary sentence. — Source Name: URL
 Stay curious! 🚀
 
 Important rules:
-- Use REAL stories from today or last 48 hours found via web search
+- Use REAL stories from the last 3 days found via web search, newest first
 - Plain text only, no HTML tags, no markdown symbols
 - Only output the formatted message, nothing else"""
     
