@@ -105,9 +105,13 @@ Important rules:
     try:
         with urlopen(req, timeout=60) as resp:
             result = json.loads(resp.read())
+            # Get the last text block — that's Claude's final formatted response
+            last_text = None
             for block in result["content"]:
                 if block["type"] == "text":
-                    return block["text"]
+                    last_text = block["text"]
+            if last_text:
+                return last_text
         return "❌ Could not generate news digest today."
     except Exception as e:
         print(f"❌ Claude API error: {e}")
