@@ -1,9 +1,9 @@
-name: Nightly Spiritual Message (Español)
+name: Nightly Spiritual Message (Espanol)
 
 on:
   schedule:
-    # 10:30 PM CDT = 03:30 UTC (Mar–Nov)
-    # Change to '30 4 * * *' during CST (Nov–Mar)
+    # 10:30 PM CDT = 03:30 UTC (Mar-Nov)
+    # Change to '30 4 * * *' during CST (Nov-Mar)
     - cron: '30 3 * * *'
   workflow_dispatch:
 
@@ -12,17 +12,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate & Send Nightly Spiritual Sequence (3 Messages)
+      - name: Generate and Send Nightly Spiritual Sequence (3 Messages)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
 
-          # ── 1. Pick random author, movie and Ami part ─────────────────────
+          # -- 1. Pick random author, movie and Ami part ---------------------
           AUTHORS=("Wayne W. Dyer" "Brian Weiss" "Mario Alonso Puig" "Dr. Manuel Sans Segarra" "Irene Albacete")
           MOVIES=("The Shack (2017)" "I Can Only Imagine (2018)" "The Notebook (2004)" "Sunrise in Heaven (2019)" "City of Angels (1998)")
-          AMI_PARTS=("Ami, el niño de las estrellas (Parte 1)" "Ami, el niño de las estrellas - Regresa (Parte 2)" "Ami, el niño de las estrellas - La civilización del universo (Parte 3)")
+          AMI_PARTS=("Ami el nino de las estrellas Parte 1" "Ami el nino de las estrellas Regresa Parte 2" "Ami el nino de las estrellas La civilizacion del universo Parte 3")
 
           AUTHOR="${AUTHORS[$((RANDOM % ${#AUTHORS[@]}))]}"
           MOVIE="${MOVIES[$((RANDOM % ${#MOVIES[@]}))]}"
@@ -34,7 +34,7 @@ jobs:
 
           CURRENT_DATE=$(TZ='America/Chicago' date '+%A, %d de %B de %Y')
 
-          # ── 2. Generate spiritual message inspired by the author ───────────
+          # -- 2. Generate spiritual message inspired by the author ----------
           RESPONSE_AUTHOR=$(curl -s https://api.anthropic.com/v1/messages \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
@@ -45,7 +45,7 @@ jobs:
               \"messages\": [
                 {
                   \"role\": \"user\",
-                  \"content\": \"Eres un mensajero espiritual nocturno. Genera un mensaje espiritual en ESPAÑOL inspirado en el estilo y la filosofía de ${AUTHOR}. El mensaje debe ser:\n- Edificante y esperanzador\n- Apropiado para leer antes de dormir\n- Entre 3 y 5 oraciones\n- Escrito dirigido al lector (usando 'tú' o 'ti')\n- Sin mencionar explícitamente al autor\n- Que invite a la reflexión y la paz interior\n\nDevuelve ÚNICAMENTE el mensaje, sin título, sin comillas, sin explicación adicional.\"
+                  \"content\": \"Eres un mensajero espiritual nocturno. Genera un mensaje espiritual en ESPAÑOL inspirado en el estilo y la filosofia de ${AUTHOR}. El mensaje debe ser edificante y esperanzador, apropiado para leer antes de dormir, entre 3 y 5 oraciones, dirigido al lector usando tu o ti, sin mencionar al autor, que invite a la reflexion y la paz interior. Devuelve UNICAMENTE el mensaje, sin titulo, sin comillas, sin explicacion adicional.\"
                 }
               ]
             }")
@@ -56,7 +56,7 @@ jobs:
           print(data['content'][0]['text'])
           ")
 
-          # ── 3. Fetch real movie quote translated to Spanish ────────────────
+          # -- 3. Fetch real movie quote translated to Spanish ---------------
           RESPONSE_MOVIE=$(curl -s https://api.anthropic.com/v1/messages \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
@@ -67,7 +67,7 @@ jobs:
               \"messages\": [
                 {
                   \"role\": \"user\",
-                  \"content\": \"Eres un experto en cine espiritual. De la película '${MOVIE}', proporciona UNA frase o cita REAL y memorable de la película. Luego tradúcela al español de forma poética y natural.\n\nResponde ÚNICAMENTE en este formato exacto (sin nada más):\nORIGINAL: [frase original en inglés]\nESPAÑOL: [traducción al español]\nPERSONAJE: [nombre del personaje o 'Narrador' si aplica]\"
+                  \"content\": \"Eres un experto en cine espiritual. De la pelicula '${MOVIE}', proporciona UNA frase o cita REAL y memorable. Luego tradúcela al español de forma poetica y natural. Responde UNICAMENTE en este formato exacto sin nada mas:\nORIGINAL: [frase original en ingles]\nESPANOL: [traduccion al espanol]\nPERSONAJE: [nombre del personaje o Narrador si aplica]\"
                 }
               ]
             }")
@@ -78,11 +78,11 @@ jobs:
           print(data['content'][0]['text'])
           ")
 
-          QUOTE_ES=$(echo "$MOVIE_RESPONSE" | grep '^ESPAÑOL:'   | sed 's/^ESPAÑOL: //')
-          QUOTE_EN=$(echo "$MOVIE_RESPONSE" | grep '^ORIGINAL:'  | sed 's/^ORIGINAL: //')
+          QUOTE_ES=$(echo "$MOVIE_RESPONSE"  | grep '^ESPANOL:'   | sed 's/^ESPANOL: //')
+          QUOTE_EN=$(echo "$MOVIE_RESPONSE"  | grep '^ORIGINAL:'  | sed 's/^ORIGINAL: //')
           CHARACTER=$(echo "$MOVIE_RESPONSE" | grep '^PERSONAJE:' | sed 's/^PERSONAJE: //')
 
-          # ── 4. Fetch Ami quote + brief reflection ─────────────────────────
+          # -- 4. Fetch Ami quote + brief reflection -------------------------
           RESPONSE_AMI=$(curl -s https://api.anthropic.com/v1/messages \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
@@ -93,7 +93,7 @@ jobs:
               \"messages\": [
                 {
                   \"role\": \"user\",
-                  \"content\": \"Eres un guía espiritual experto en la trilogía de Enrique Barrios. Del libro '${AMI_PART}' de Enrique Barrios, proporciona UNA cita o frase real, inspiradora y representativa del libro, preferiblemente dicha por el personaje Ami.\n\nLuego agrega una brevísima reflexión personal (máximo 2 oraciones) que conecte esa frase con la vida cotidiana del lector, de forma esperanzadora.\n\nResponde ÚNICAMENTE en este formato exacto (sin nada más):\nCITA: [la frase o cita del libro]\nPERSONAJE: [nombre del personaje que la dice, o 'Narrador' si aplica]\nREFLEXIÓN: [tu breve reflexión de máximo 2 oraciones]\"
+                  \"content\": \"Eres un guia espiritual experto en la trilogia de Enrique Barrios. Del libro '${AMI_PART}' de Enrique Barrios, proporciona UNA cita o frase real e inspiradora del libro, preferiblemente dicha por el personaje Ami. Luego agrega una brevísima reflexion personal de maximo 2 oraciones que conecte esa frase con la vida cotidiana del lector de forma esperanzadora. Responde UNICAMENTE en este formato exacto sin nada mas:\nCITA: [la frase o cita del libro]\nPERSONAJE: [nombre del personaje que la dice o Narrador si aplica]\nREFLEXION: [tu breve reflexion de maximo 2 oraciones]\"
                 }
               ]
             }")
@@ -104,19 +104,24 @@ jobs:
           print(data['content'][0]['text'])
           ")
 
-          AMI_QUOTE=$(echo "$AMI_RESPONSE"      | grep '^CITA:'       | sed 's/^CITA: //')
-          AMI_CHARACTER=$(echo "$AMI_RESPONSE"  | grep '^PERSONAJE:'  | sed 's/^PERSONAJE: //')
-          AMI_REFLECTION=$(echo "$AMI_RESPONSE" | grep '^REFLEXIÓN:'  | sed 's/^REFLEXIÓN: //')
+          AMI_QUOTE=$(echo "$AMI_RESPONSE"      | grep '^CITA:'      | sed 's/^CITA: //')
+          AMI_CHARACTER=$(echo "$AMI_RESPONSE"  | grep '^PERSONAJE:' | sed 's/^PERSONAJE: //')
+          AMI_REFLECTION=$(echo "$AMI_RESPONSE" | grep '^REFLEXION:' | sed 's/^REFLEXION: //')
 
-          echo "✅ All three messages generated."
+          echo "All three messages generated successfully."
 
-          # ── 5. Send MESSAGE 1 — Author Inspiration ────────────────────────
-          MSG1="🌙 *Mensaje Espiritual de Buenas Noches*
-${CURRENT_DATE}
-
-${AUTHOR_MESSAGE}
-
-✨ _Inspirado en: ${AUTHOR}_"
+          # -- 5. Send MESSAGE 1 - Author Inspiration ------------------------
+          MSG1=$(python3 -c "
+          import os
+          author = os.environ.get('AUTHOR', '')
+          date = os.environ.get('CURRENT_DATE', '')
+          msg = os.environ.get('AUTHOR_MESSAGE', '')
+          text = f'🌙 *Mensaje Espiritual de Buenas Noches*\n{date}\n\n{msg}\n\n✨ _Inspirado en: {author}_'
+          print(text)
+          " \
+          AUTHOR="$AUTHOR" \
+          CURRENT_DATE="$CURRENT_DATE" \
+          AUTHOR_MESSAGE="$AUTHOR_MESSAGE")
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
@@ -126,18 +131,23 @@ ${AUTHOR_MESSAGE}
               \"parse_mode\": \"Markdown\"
             }"
 
-          echo "✅ Message 1 sent (author inspiration)."
+          echo "Message 1 sent (author inspiration)."
           sleep 3
 
-          # ── 6. Send MESSAGE 2 — Movie Quote ───────────────────────────────
-          MSG2="🎬 *Frase Espiritual del Cine*
-
-_\"${QUOTE_ES}\"_
-
-— ${CHARACTER}
-🎥 *${MOVIE}*
-
-🇺🇸 _\"${QUOTE_EN}\"_"
+          # -- 6. Send MESSAGE 2 - Movie Quote -------------------------------
+          MSG2=$(python3 -c "
+          import os
+          quote_es  = os.environ.get('QUOTE_ES', '')
+          quote_en  = os.environ.get('QUOTE_EN', '')
+          character = os.environ.get('CHARACTER', '')
+          movie     = os.environ.get('MOVIE', '')
+          text = f'🎬 *Frase Espiritual del Cine*\n\n_{chr(34)}{quote_es}{chr(34)}_\n\n— {character}\n🎥 *{movie}*\n\n🇺🇸 _{chr(34)}{quote_en}{chr(34)}_'
+          print(text)
+          " \
+          QUOTE_ES="$QUOTE_ES" \
+          QUOTE_EN="$QUOTE_EN" \
+          CHARACTER="$CHARACTER" \
+          MOVIE="$MOVIE")
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
@@ -147,19 +157,23 @@ _\"${QUOTE_ES}\"_
               \"parse_mode\": \"Markdown\"
             }"
 
-          echo "✅ Message 2 sent (movie quote)."
+          echo "Message 2 sent (movie quote)."
           sleep 3
 
-          # ── 7. Send MESSAGE 3 — Ami Book Quote + Reflection ───────────────
-          MSG3="📖 *Sabiduría de las Estrellas*
-
-_\"${AMI_QUOTE}\"_
-
-— ${AMI_CHARACTER}
-🌟 *${AMI_PART}*
-_Enrique Barrios_
-
-💫 *Reflexión:* ${AMI_REFLECTION}"
+          # -- 7. Send MESSAGE 3 - Ami Book Quote + Reflection ---------------
+          MSG3=$(python3 -c "
+          import os
+          quote      = os.environ.get('AMI_QUOTE', '')
+          character  = os.environ.get('AMI_CHARACTER', '')
+          ami_part   = os.environ.get('AMI_PART', '')
+          reflection = os.environ.get('AMI_REFLECTION', '')
+          text = f'📖 *Sabiduría de las Estrellas*\n\n_{chr(34)}{quote}{chr(34)}_\n\n— {character}\n🌟 *{ami_part}*\n_Enrique Barrios_\n\n💫 *Reflexión:* {reflection}'
+          print(text)
+          " \
+          AMI_QUOTE="$AMI_QUOTE" \
+          AMI_CHARACTER="$AMI_CHARACTER" \
+          AMI_PART="$AMI_PART" \
+          AMI_REFLECTION="$AMI_REFLECTION")
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -H "Content-Type: application/json" \
@@ -169,5 +183,5 @@ _Enrique Barrios_
               \"parse_mode\": \"Markdown\"
             }"
 
-          echo "✅ Message 3 sent (Ami book quote + reflection)."
-          echo "🌙 Nightly spiritual sequence completed!"
+          echo "Message 3 sent (Ami book quote and reflection)."
+          echo "Nightly spiritual sequence completed!"
