@@ -25,7 +25,7 @@ def generate_news_message() -> str:
 4. 🔬 Science & Health
 5. ⚡ General Technology
 
-find the most recent stories available, even if from the last 7 days
+find ONE, the most recent story available for each category, even if from the last 7 days
 
 Format the response exactly like this as plain text:
 
