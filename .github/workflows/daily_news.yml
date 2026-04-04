@@ -2,9 +2,7 @@ name: Daily Tech News Bot
 
 on:
   schedule:
-    # Runs every day at 8:00 AM Central Time (UTC-5 standard / UTC-6 daylight)
-    # 14:00 UTC = 8:00 AM CST  |  13:00 UTC = 8:00 AM CDT
-    # Adjust the hour below to change your delivery time (UTC format)
+    # Runs every Saturday at 9:00 AM Central Time (UTC-5 standard / UTC-6 daylight)    
     - cron: '0 9 * * 6'
 
   # Lets you click "Run workflow" manually in GitHub to test it
