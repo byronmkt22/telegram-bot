@@ -2,7 +2,8 @@ name: Nightly Spiritual Message (Espanol)
 
 on:
   schedule:
-    - cron: '0 21 * * 2,4,0'
+    #Runs at 21:00, only on Tuesday, Thursday, and Sunday  # Tue, Thu, Sun at 9:30 PM Central
+    - cron: '0 21 * * 2,4,0'  # Tue, Thu, Sun at 9:30 PM Central
   workflow_dispatch:
 
 jobs:
@@ -20,20 +21,24 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python3 << 'PYEOF'
-          import os, json, random, time, urllib.request
+          import os
+          import json
+          import random
+          import time
+          import urllib.request
           from datetime import datetime
           import pytz
 
           ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-          TELEGRAM_TOKEN    = os.environ["TELEGRAM_TOKEN"]
-          TELEGRAM_CHAT_ID  = os.environ["TELEGRAM_CHAT_ID"]
+          TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
+          TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
           AUTHORS = [
               "Wayne W. Dyer",
               "Brian Weiss",
               "Mario Alonso Puig",
               "Dr. Manuel Sans Segarra",
-              "Irene Albacete"
+              "Irene Albacete",
               "Enrique Barrios",
           ]
           MOVIES = [
@@ -49,26 +54,27 @@ jobs:
               "Ami, el nino de las estrellas - La civilizacion del universo (Parte 3)",
           ]
 
-          author   = random.choice(AUTHORS)
-          movie    = random.choice(MOVIES)
+          author = random.choice(AUTHORS)
+          movie = random.choice(MOVIES)
           ami_part = random.choice(AMI_PARTS)
 
-          tz  = pytz.timezone("America/Chicago")
+          tz = pytz.timezone("America/Chicago")
           now = datetime.now(tz)
-          DAYS_ES   = ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"]
-          MONTHS_ES = ["enero","febrero","marzo","abril","mayo","junio",
-                       "julio","agosto","septiembre","octubre","noviembre","diciembre"]
+          DAYS_ES = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
+          MONTHS_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                       "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
           current_date = f"{DAYS_ES[now.weekday()]}, {now.day} de {MONTHS_ES[now.month-1]} de {now.year}"
 
-          print(f"Author: {author}")
-          print(f"Movie : {movie}")
-          print(f"Ami   : {ami_part}")
-          print(f"Date  : {current_date}")
+          print(f"[*] Author: {author}")
+          print(f"[*] Movie : {movie}")
+          print(f"[*] Ami   : {ami_part}")
+          print(f"[*] Date  : {current_date}\n")
 
-          def ask_claude(prompt):
+          def ask_claude(prompt, max_tokens=1024):
+              """Call Claude API and extract the last text block."""
               payload = json.dumps({
                   "model": "claude-haiku-4-5-20251001",
-                  "max_tokens": 1024,
+                  "max_tokens": max_tokens,
                   "messages": [{"role": "user", "content": prompt}]
               }).encode("utf-8")
               req = urllib.request.Request(
@@ -81,10 +87,25 @@ jobs:
                   },
                   method="POST"
               )
-              with urllib.request.urlopen(req) as r:
-                  return json.loads(r.read().decode("utf-8"))["content"][0]["text"].strip()
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      result = json.loads(r.read().decode("utf-8"))
+                      # Get the last text block (final response)
+                      last_text = None
+                      for block in result.get("content", []):
+                          if block.get("type") == "text":
+                              last_text = block.get("text", "").strip()
+                      return last_text if last_text else ""
+              except Exception as e:
+                  print(f"[ERROR] Claude API call failed: {e}")
+                  return ""
 
           def send_telegram(text):
+              """Send message to Telegram. Returns True if successful."""
+              if not text:
+                  print("[WARN] Empty message, skipping send")
+                  return False
+
               payload = json.dumps({
                   "chat_id": TELEGRAM_CHAT_ID,
                   "text": text,
@@ -96,18 +117,31 @@ jobs:
                   headers={"Content-Type": "application/json"},
                   method="POST"
               )
-              with urllib.request.urlopen(req) as r:
-                  result = json.loads(r.read().decode("utf-8"))
-              print(f"Telegram ok: {result.get('ok')}")
+              try:
+                  with urllib.request.urlopen(req, timeout=15) as r:
+                      result = json.loads(r.read().decode("utf-8"))
+                      if result.get("ok"):
+                          return True
+                      else:
+                          print(f"[ERROR] Telegram API error: {result.get('description', 'Unknown')}")
+                          return False
+              except Exception as e:
+                  print(f"[ERROR] Failed to send Telegram message: {e}")
+                  return False
 
           def parse_line(text, prefix):
+              """Extract line starting with prefix."""
+              if not text:
+                  return ""
               for line in text.splitlines():
                   if line.startswith(prefix):
                       return line[len(prefix):].strip()
               return ""
 
-          # -- Generate all content ------------------------------------------
-          print("\nGenerating author message...")
+          # ──────────────────────────────────────────────────────────────
+          # MESSAGE 1: Author-inspired reflection
+          # ──────────────────────────────────────────────────────────────
+          print("[1/3] Generating author message...")
           author_msg = ask_claude(
               f"Eres un mensajero espiritual nocturno. Genera un mensaje espiritual en ESPAÑOL "
               f"inspirado en el estilo y la filosofia de {author}. El mensaje debe ser edificante "
@@ -116,67 +150,93 @@ jobs:
               f"reflexion y la paz interior. Devuelve UNICAMENTE el mensaje, sin titulo, "
               f"sin comillas, sin explicacion adicional."
           )
-          print(f"Done: {author_msg[:60]}...")
+          if not author_msg:
+              print("[ERROR] Failed to generate author message, aborting")
+              exit(1)
 
-          print("\nGenerating movie quote...")
+          msg1 = (
+              f"🌙 *Mensaje Espiritual de Buenas Noches*\n"
+              f"_{current_date}_\n\n"
+              f"{author_msg}\n\n"
+              f"✨ _Inspirado en: {author}_"
+          )
+          print(f"[OK] Message 1 ready ({len(msg1)} chars)")
+          print(f"Sending message 1...")
+          if not send_telegram(msg1):
+              print("[ERROR] Failed to send message 1")
+          time.sleep(5)
+
+          # ──────────────────────────────────────────────────────────────
+          # MESSAGE 2: Movie quote with translation
+          # ──────────────────────────────────────────────────────────────
+          print("[2/3] Generating movie quote...")
           movie_raw = ask_claude(
               f"Eres un experto en cine espiritual. De la pelicula '{movie}', proporciona UNA "
               f"frase o cita REAL y memorable. Luego traducela al espanol de forma poetica. "
-              f"Responde UNICAMENTE en este formato exacto:\n"
+              f"Responde UNICAMENTE en este formato exacto, una linea por item:\n"
               f"ORIGINAL: [frase original en ingles]\n"
               f"ESPANOL: [traduccion al espanol]\n"
               f"PERSONAJE: [nombre del personaje o Narrador]"
           )
-          quote_en  = parse_line(movie_raw, "ORIGINAL:")
-          quote_es  = parse_line(movie_raw, "ESPANOL:")
+          quote_en = parse_line(movie_raw, "ORIGINAL:")
+          quote_es = parse_line(movie_raw, "ESPANOL:")
           character = parse_line(movie_raw, "PERSONAJE:")
-          print(f"Done: {quote_es[:60]}...")
 
-          print("\nGenerating Ami quote...")
+          if not quote_es or not quote_en:
+              print(f"[WARN] Could not parse movie quotes, using fallback")
+              quote_es = "La fe y el amor transforman el alma"
+              quote_en = "Faith and love transform the soul"
+              character = "Personaje del Cine"
+
+          msg2 = (
+              f"🎬 *Frase Espiritual del Cine*\n\n"
+              f"_{quote_es}_\n\n"
+              f"— {character}\n"
+              f"🎥 *{movie}*\n\n"
+              f"🇺🇸 _{quote_en}_"
+          )
+          print(f"[OK] Message 2 ready ({len(msg2)} chars)")
+          print(f"Sending message 2...")
+          if not send_telegram(msg2):
+              print("[ERROR] Failed to send message 2")
+          time.sleep(5)
+
+          # ──────────────────────────────────────────────────────────────
+          # MESSAGE 3: Ami trilogy wisdom
+          # ──────────────────────────────────────────────────────────────
+          print("[3/3] Generating Ami quote...")
           ami_raw = ask_claude(
               f"Eres un guia espiritual experto en la trilogia de Enrique Barrios. Del libro "
               f"'{ami_part}', proporciona UNA cita o frase real e inspiradora, preferiblemente "
               f"dicha por Ami. Luego agrega una brevisima reflexion de maximo 2 oraciones que "
               f"conecte esa frase con la vida cotidiana del lector de forma esperanzadora. "
-              f"Responde UNICAMENTE en este formato exacto:\n"
+              f"Responde UNICAMENTE en este formato exacto, una linea por item:\n"
               f"CITA: [frase del libro]\n"
               f"PERSONAJE: [quien la dice]\n"
               f"REFLEXION: [reflexion breve]"
           )
-          ami_quote      = parse_line(ami_raw, "CITA:")
-          ami_character  = parse_line(ami_raw, "PERSONAJE:")
+          ami_quote = parse_line(ami_raw, "CITA:")
+          ami_character = parse_line(ami_raw, "PERSONAJE:")
           ami_reflection = parse_line(ami_raw, "REFLEXION:")
-          print(f"Done: {ami_quote[:60]}...")
 
-          # -- Send messages -------------------------------------------------
-          print("\nSending message 1 (author)...")
-          send_telegram(
-              f"🌙 *Mensaje Espiritual de Buenas Noches*\n"
-              f"{current_date}\n\n"
-              f"{author_msg}\n\n"
-              f"✨ _Inspirado en: {author}_"
-          )
-          time.sleep(3)
+          if not ami_quote:
+              print(f"[WARN] Could not parse Ami quote, using fallback")
+              ami_quote = "El universo conspira a tu favor"
+              ami_character = "Ami"
+              ami_reflection = "Recuerda que dentro de ti brilla la luz del universo"
 
-          print("Sending message 2 (movie)...")
-          send_telegram(
-              f"🎬 *Frase Espiritual del Cine*\n\n"
-              f'_"{quote_es}"_\n\n'
-              f"— {character}\n"
-              f"🎥 *{movie}*\n\n"
-              f'🇺🇸 _"{quote_en}"_'
-          )
-          time.sleep(3)
-
-          print("Sending message 3 (Ami)...")
-          send_telegram(
+          msg3 = (
               f"📖 *Sabiduria de las Estrellas*\n\n"
-              f'_"{ami_quote}"_\n\n'
+              f"_{ami_quote}_\n\n"
               f"— {ami_character}\n"
               f"🌟 *{ami_part}*\n"
               f"_Enrique Barrios_\n\n"
               f"💫 *Reflexion:* {ami_reflection}"
           )
+          print(f"[OK] Message 3 ready ({len(msg3)} chars)")
+          print(f"Sending message 3...")
+          if not send_telegram(msg3):
+              print("[ERROR] Failed to send message 3")
 
-          print("\nNightly spiritual sequence completed!")
+          print("\n✅ Nightly spiritual sequence completed!")
           PYEOF
