@@ -21,6 +21,28 @@ MOVIES = [
     "The Shift (2009)",
 ]
 
+# Fallback quotes in case Claude API fails
+FALLBACK_QUOTES = [
+    {
+        "original": "Forgiveness is not about forgetting. It's about letting go of another person's throat.",
+        "espanol": "El perdón no es sobre olvidar. Es sobre soltar la garganta de otra persona.",
+        "personaje": "Papá (Dios)",
+        "movie": "The Shack (2017)"
+    },
+    {
+        "original": "The greatest journey is the one within.",
+        "espanol": "El viaje más grande es el que ocurre dentro de nosotros.",
+        "personaje": "Narrador",
+        "movie": "Peaceful Warrior (2006)"
+    },
+    {
+        "original": "You have the power to shift your reality.",
+        "espanol": "Tienes el poder de cambiar tu realidad.",
+        "personaje": "Narrador",
+        "movie": "The Shift (2009)"
+    }
+]
+
 # ─── CLAUDE AI QUOTE GENERATOR ────────────────────────────────────────────────
 
 def generate_movie_quote() -> dict:
@@ -34,7 +56,7 @@ De la película: "{movie}", proporciona UNA sola frase o cita REAL y memorable q
 Primero selecciona una cita poderosa, luego tradúcela al español de forma poética, bella y natural, conservando su esencia emocional y espiritual.
 
 Responde ÚNICAMENTE en este formato exacto, sin emoticones ni texto adicional:
-ORIGINAL: [frase original en inglés], {movie}
+ORIGINAL: [frase original en inglés]
 ESPANOL: [traducción poética al español]
 PERSONAJE: [nombre del personaje o "Narrador" si corresponde]"""
 
@@ -59,7 +81,18 @@ PERSONAJE: [nombre del personaje o "Narrador" si corresponde]"""
     try:
         with urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read())
-            response_text = result["content"][0]["text"].strip()
+            
+            # Get the last text block from the response (Claude's final answer)
+            response_text = ""
+            for block in result.get("content", []):
+                if block.get("type") == "text":
+                    response_text = block.get("text", "").strip()
+            
+            print(f"📝 Raw Claude response:\n{response_text}\n")
+            
+            if not response_text:
+                print("⚠️ Claude returned empty response, using fallback")
+                return random.choice(FALLBACK_QUOTES)
             
             # Parse the response
             quote_data = {
@@ -70,6 +103,7 @@ PERSONAJE: [nombre del personaje o "Narrador" si corresponde]"""
             }
             
             for line in response_text.splitlines():
+                line = line.strip()
                 if line.startswith("ORIGINAL:"):
                     quote_data["original"] = line.replace("ORIGINAL:", "").strip()
                 elif line.startswith("ESPANOL:"):
@@ -77,16 +111,19 @@ PERSONAJE: [nombre del personaje o "Narrador" si corresponde]"""
                 elif line.startswith("PERSONAJE:"):
                     quote_data["personaje"] = line.replace("PERSONAJE:", "").strip()
             
+            print(f"✅ Parsed quote data: {quote_data}\n")
+            
+            # Validate that we got actual content
+            if not quote_data["espanol"] or not quote_data["original"]:
+                print("⚠️ Parsing failed (missing quotes), using fallback")
+                return random.choice(FALLBACK_QUOTES)
+            
             return quote_data
             
     except Exception as e:
         print(f"❌ Claude API error: {e}")
-        return {
-            "original": "The greatest journey is the one within.",
-            "espanol": "El viaje más grande es el que ocurre dentro de nosotros.",
-            "personaje": "Narrador",
-            "movie": movie
-        }
+        print("⚠️ Using fallback quote due to API error")
+        return random.choice(FALLBACK_QUOTES)
 
 
 def generate_quote_explanation(spanish_quote: str, movie: str) -> str:
@@ -121,7 +158,21 @@ Responde ÚNICAMENTE con la explicación, sin prefijos ni explicaciones adiciona
     try:
         with urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read())
-            return result["content"][0]["text"].strip()
+            
+            # Get the last text block
+            explanation_text = ""
+            for block in result.get("content", []):
+                if block.get("type") == "text":
+                    explanation_text = block.get("text", "").strip()
+            
+            print(f"📝 Raw explanation response:\n{explanation_text}\n")
+            
+            if explanation_text:
+                return explanation_text
+            else:
+                print("⚠️ Empty explanation from Claude, using generic fallback")
+                return "Reflexiona sobre estas palabras y permite que transformen tu perspectiva hoy."
+                
     except Exception as e:
         print(f"⚠️ Could not generate explanation: {e}")
         return "Reflexiona sobre estas palabras y permite que transformen tu perspectiva hoy."
@@ -159,6 +210,10 @@ def send_telegram_message(text: str) -> bool:
 if __name__ == "__main__":
     print("🎬 Asking Claude for a spiritual movie quote...")
     quote_data = generate_movie_quote()
+    
+    # Check if quote was successfully parsed
+    if not quote_data["espanol"]:
+        print("⚠️ Warning: Spanish quote is empty. Check debug output above.")
     
     print("💭 Generating explanation...")
     explanation = generate_quote_explanation(quote_data['espanol'], quote_data['movie'])
