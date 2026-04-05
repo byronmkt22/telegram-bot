@@ -89,6 +89,44 @@ PERSONAJE: [nombre del personaje o "Narrador" si corresponde]"""
         }
 
 
+def generate_quote_explanation(spanish_quote: str, movie: str) -> str:
+    """Generate a brief, meaningful explanation of the quote's importance."""
+    
+    prompt = f"""La siguiente es una cita espiritual de la película "{movie}":
+
+"{spanish_quote}"
+
+Proporciona UNA explicación breve y poderosa (máximo 2 oraciones) que ayude al lector a entender por qué esta frase es importante y transformadora para la vida cotidiana. Habla directamente al lector, de forma inspiradora y accesible.
+
+Responde ÚNICAMENTE con la explicación, sin prefijos ni explicaciones adicionales."""
+
+    payload = json.dumps({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 200,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }).encode("utf-8")
+
+    req = Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+        }
+    )
+
+    try:
+        with urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+            return result["content"][0]["text"].strip()
+    except Exception as e:
+        print(f"⚠️ Could not generate explanation: {e}")
+        return "Reflexiona sobre estas palabras y permite que transformen tu perspectiva hoy."
+
+
 # ─── TELEGRAM SENDER ────────────────────────────────────────────────────────────
 
 def send_telegram_message(text: str) -> bool:
@@ -122,6 +160,9 @@ if __name__ == "__main__":
     print("🎬 Asking Claude for a spiritual movie quote...")
     quote_data = generate_movie_quote()
     
+    print("💭 Generating explanation...")
+    explanation = generate_quote_explanation(quote_data['espanol'], quote_data['movie'])
+    
     # Get current date in Spanish
     tz = pytz.timezone("America/Chicago")
     now = datetime.now(tz)
@@ -137,7 +178,9 @@ if __name__ == "__main__":
         f"_{quote_data['espanol']}_\n\n"
         f"— {quote_data['personaje']}\n"
         f"🎥 *{quote_data['movie']}*\n\n"
-        f"🇺🇸 _\\"{quote_data['original']}\\"_\n\n"
+        f"🇺🇸 _{quote_data['original']}_\n\n"
+        f"💫 *Por qué importa:*\n"
+        f"{explanation}\n\n"
         f"✨ _Que esta verdad te inspire y guíe tu día._"
     )
     
