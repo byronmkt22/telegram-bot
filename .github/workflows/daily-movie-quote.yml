@@ -1,0 +1,31 @@
+name: Daily Spiritual Movie Quote
+
+on:
+  schedule:
+    # Runs every Sunday at 6:00 PM Central Time (UTC-6)
+    - cron: '0 18 * * 0'
+  
+  workflow_dispatch:
+
+jobs:
+  send-movie-quote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pytz --break-system-packages -q
+
+      - name: Generate and Send Spiritual Movie Quote
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python spiritual_movie_quote.py
