@@ -135,7 +135,7 @@ def send_telegram_message(text: str) -> bool:
     payload = json.dumps({
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text,
-        "parse_mode": "Markdown",
+        "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }).encode("utf-8")
 
@@ -171,17 +171,17 @@ if __name__ == "__main__":
                  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
     current_date = f"{DAYS_ES[now.weekday()]}, {now.day} de {MONTHS_ES[now.month-1]} de {now.year}"
     
-    # Format message
+    # Format message using HTML parse mode
     message = (
-        f"🎬 *Sabiduría del Cine Espiritual*\n"
-        f"_{current_date}_\n\n"
-        f"_{quote_data['espanol']}_\n\n"
+        f"🎬 <b>Sabiduría del Cine Espiritual</b>\n"
+        f"<i>{current_date}</i>\n\n"
+        f"<i>{quote_data['espanol']}</i>\n\n"
         f"— {quote_data['personaje']}\n"
-        f"🎥 *{quote_data['movie']}*\n\n"
-        f"🇺🇸 _{quote_data['original']}_\n\n"
-        f"💫 *Por qué importa:*\n"
+        f"🎥 <b>{quote_data['movie']}</b>\n\n"
+        f"🇺🇸 <i>\"{quote_data['original']}\"</i>\n\n"
+        f"💫 <b>Por qué importa:</b>\n"
         f"{explanation}\n\n"
-        f"✨ _Que esta verdad te inspire y guíe tu día._"
+        f"✨ <i>Que esta verdad te inspire y guíe tu día.</i>"
     )
     
     print("📤 Sending to Telegram...")
