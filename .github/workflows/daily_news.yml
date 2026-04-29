@@ -1,4 +1,4 @@
-name: Weekly Tech News Bot
+name: Saturday Tech News Bot
 
 on:
   schedule:
