@@ -1,8 +1,7 @@
 name: Weekly Spiritual Message (Espanol)
 
 on:
-  schedule:
-    #Runs at 21:00, only on Tuesday, Thursday, and Sunday  # Tue, Thu, Sun at 9:30 PM Central
+  schedule:   
     - cron: '0 1 * * 0'  # Saturday at 8 PM CDT (UTC-5), runs Sunday 1 AM UTC
   workflow_dispatch:
 
