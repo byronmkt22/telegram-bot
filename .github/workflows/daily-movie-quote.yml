@@ -1,9 +1,9 @@
-name: Sunday Spiritual Movie Quote
+name: First Sunday Spiritual Movie Quote
 
 on:
   schedule:
     # Runs every Sunday at 6:00 PM Central Time (UTC-6)
-    - cron: '0 18 * * 0'
+    - cron: '0 1 1-7 * 0'
   
   workflow_dispatch:
 
