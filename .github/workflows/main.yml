@@ -1,8 +1,8 @@
-name: Monday Spiritual Message
+name: First Monday Spiritual Message
 
 on:
   schedule:
-    - cron: '0 14 * * 1'  # 8 AM Central Time (UTC-6 standard time)
+    - cron: '0 14 1-7 * 1'  # 8 AM Central Time (UTC-6 standard time)
   workflow_dispatch:       # lets you test it manually
 
 jobs:
