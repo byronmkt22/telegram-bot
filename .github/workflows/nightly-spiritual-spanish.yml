@@ -2,7 +2,7 @@ name: First Saturday Spiritual Message (Espanol)
 
 on:
   schedule:   
-    - cron: '0 1 1-7 * 6' # Saturday 8 PM CDT
+    - cron: '0 14 1-7 * 6' # Saturday 8 PM CDT
   workflow_dispatch:
 
 jobs:
